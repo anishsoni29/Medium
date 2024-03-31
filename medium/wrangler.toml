@@ -16,3 +16,5 @@ compatibility_date = "2023-12-01"
 # binding = "DB"
 # database_name = "my-database"
 # database_id = ""
+
+DATABASE_URL="postgresql://sonianish441:TK6bwckjlUS4@ep-twilight-waterfall-38593792.us-east-2.aws.neon.tech/test?sslmode=require"

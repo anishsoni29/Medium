@@ -1,4 +1,6 @@
 import { Hono } from "hono";
+import { PrismaClient } from "@prisma/client/edge";
+import { withAccelerate } from "@prisma/extension-accelerate";
 
 // Create the main Hono app
 const app = new Hono();
@@ -26,3 +28,7 @@ app.put("/api/v1/blog", (c) => {
 });
 
 export default app;
+
+const prisma = new PrismaClient({
+  datasourceUrl: env.DATABASE_URL,
+}).$extends(withAccelerate());
