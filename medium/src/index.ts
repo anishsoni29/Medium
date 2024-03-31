@@ -30,5 +30,5 @@ app.put("/api/v1/blog", (c) => {
 export default app;
 
 const prisma = new PrismaClient({
-  datasourceUrl: env.DATABASE_URL,
+  datasourceUrl: process.env.DATABASE_URL, // Use process.env to access environment variables
 }).$extends(withAccelerate());
