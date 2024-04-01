@@ -31,6 +31,14 @@ app.use("api/v1/blog/*", async (c, next) => {
   await next();
 });
 
+//Callout to the Middlewares -->
+// app.use("*", (c) => {
+//   const prisma = new PrismaClient({
+//     datasourceUrl: c.env.DATABASE_URL,
+//   }).$extends(withAccelerate());
+//   c.set("prisma", prisma);
+// });
+
 app.post("/api/v1/signup", async (c) => {
   const prisma = new PrismaClient({
     datasourceUrl: c.env?.DATABASE_URL,
@@ -72,8 +80,23 @@ app.post("/api/v1/signin", async (c) => {
   return c.json({ jwt });
 });
 
-app.post("/api/v1/blog", (c) => {
-  return c.text("signin route");
+//creating the route to initialise the blog
+app.post("/", async (c) => {
+  const userId = c.get("userId");
+  const prisma = new PrismaClient({
+    datasourceUrl: c.env?.DATABASE_URL,
+  }).$extends(withAccelerate());
+  const body = await c.req.json();
+  const post = await prisma.post.create({
+    data: {
+      title: body.title,
+      content: body.content,
+      authorId: userId,
+    },
+  });
+  return c.json({
+    id: post.id,
+  });
 });
 
 app.get("/api/v1/blog/:id", (c) => {
@@ -82,14 +105,34 @@ app.get("/api/v1/blog/:id", (c) => {
   return c.text("get blog route");
 });
 
-app.put("/api/v1/blog", (c) => {
-  return c.text("signin route");
+//creating the route to update the blog
+app.put("/api/v1/blog", async (c) => {
+  const userId = c.get("userId");
+  const prisma = new PrismaClient({
+    datasourceUrl: c.env?.DATABASE_URL,
+  }).$extends(withAccelerate());
+
+  const body = await c.req.json();
+  prisma.post.update({
+    where: {
+      id: body.id,
+      authorId: userId,
+    },
+    data: {
+      title: body.title,
+      content: body.content,
+    },
+  });
+
+  return c.text("updated post");
 });
 
-export default app;
+//creating the route to get all blogs
+app.get("/api/v1/blog", async (c) => {
+  const prisma = new PrismaClient({
+    datasourceUrl: c.env?.DATABASE_URL,
+  }).$extends(withAccelerate());
 
-const prisma = new PrismaClient({
-  datasourceUrl: process.env.DATABASE_URL, // Use process.env to access environment variables
-}).$extends(withAccelerate());
-
-//adding middlewares
+  const posts = await prisma.post.findMany({});
+  return c.json(posts);
+});
