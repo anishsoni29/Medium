@@ -136,3 +136,6 @@ app.get("/api/v1/blog", async (c) => {
   const posts = await prisma.post.findMany({});
   return c.json(posts);
 });
+
+//To-Do
+//1. Stuck at the Deployement phase
