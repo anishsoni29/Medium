@@ -1,7 +1,13 @@
-import { Hono } from "hono";
 import { PrismaClient } from "@prisma/client/edge";
 import { withAccelerate } from "@prisma/extension-accelerate";
+import { Hono } from "hono";
 import { sign, verify } from "hono/jwt";
+import {
+  signinInput,
+  signupInput,
+  createPostInput,
+  updatePostInput,
+} from "@anishsoni/medium-app";
 
 // Create the main Hono app
 const app = new Hono<{
@@ -14,8 +20,7 @@ const app = new Hono<{
   };
 }>();
 
-// Top level Middleware
-app.use("api/v1/blog/*", async (c, next) => {
+app.use("/api/v1/blog/*", async (c, next) => {
   const jwt = c.req.header("Authorization");
   if (!jwt) {
     c.status(401);
@@ -31,19 +36,17 @@ app.use("api/v1/blog/*", async (c, next) => {
   await next();
 });
 
-//Callout to the Middlewares -->
-// app.use("*", (c) => {
-//   const prisma = new PrismaClient({
-//     datasourceUrl: c.env.DATABASE_URL,
-//   }).$extends(withAccelerate());
-//   c.set("prisma", prisma);
-// });
-
 app.post("/api/v1/signup", async (c) => {
   const prisma = new PrismaClient({
     datasourceUrl: c.env?.DATABASE_URL,
   }).$extends(withAccelerate());
+
   const body = await c.req.json();
+  const { success } = signupInput.safeParse(body);
+  if (!success) {
+    c.status(400);
+    return c.json({ error: "invalid input" });
+  }
   try {
     const user = await prisma.user.create({
       data: {
@@ -65,6 +68,11 @@ app.post("/api/v1/signin", async (c) => {
   }).$extends(withAccelerate());
 
   const body = await c.req.json();
+  const { success } = signinInput.safeParse(body);
+  if (!success) {
+    c.status(400);
+    return c.json({ error: "invalid input" });
+  }
   const user = await prisma.user.findUnique({
     where: {
       email: body.email,
@@ -80,13 +88,34 @@ app.post("/api/v1/signin", async (c) => {
   return c.json({ jwt });
 });
 
-//creating the route to initialise the blog
-app.post("/", async (c) => {
+app.get("/api/v1/blog/:id", async (c) => {
+  const id = c.req.param("id");
+  const prisma = new PrismaClient({
+    datasourceUrl: c.env?.DATABASE_URL,
+  }).$extends(withAccelerate());
+
+  const post = await prisma.post.findUnique({
+    where: {
+      id,
+    },
+  });
+
+  return c.json(post);
+});
+
+app.post("/api/v1/blog", async (c) => {
   const userId = c.get("userId");
   const prisma = new PrismaClient({
     datasourceUrl: c.env?.DATABASE_URL,
   }).$extends(withAccelerate());
+
   const body = await c.req.json();
+  const { success } = createPostInput.safeParse(body);
+  if (!success) {
+    c.status(400);
+    return c.json({ error: "invalid input" });
+  }
+
   const post = await prisma.post.create({
     data: {
       title: body.title,
@@ -99,13 +128,6 @@ app.post("/", async (c) => {
   });
 });
 
-app.get("/api/v1/blog/:id", (c) => {
-  const id = c.req.param("id");
-  console.log(id);
-  return c.text("get blog route");
-});
-
-//creating the route to update the blog
 app.put("/api/v1/blog", async (c) => {
   const userId = c.get("userId");
   const prisma = new PrismaClient({
@@ -113,6 +135,12 @@ app.put("/api/v1/blog", async (c) => {
   }).$extends(withAccelerate());
 
   const body = await c.req.json();
+  const { success } = updatePostInput.safeParse(body);
+  if (!success) {
+    c.status(400);
+    return c.json({ error: "invalid input" });
+  }
+
   prisma.post.update({
     where: {
       id: body.id,
@@ -127,15 +155,4 @@ app.put("/api/v1/blog", async (c) => {
   return c.text("updated post");
 });
 
-//creating the route to get all blogs
-app.get("/api/v1/blog", async (c) => {
-  const prisma = new PrismaClient({
-    datasourceUrl: c.env?.DATABASE_URL,
-  }).$extends(withAccelerate());
-
-  const posts = await prisma.post.findMany({});
-  return c.json(posts);
-});
-
-//To-Do
-//1. Stuck at the Deployement phase
+export default app;
